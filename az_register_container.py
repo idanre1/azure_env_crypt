@@ -2,6 +2,7 @@
 from azure.cli.core import get_default_cli
 from aes_crypt_json import aesCryptJson
 debug=False
+#https://aka.ms/azadsp-cli
 
 def az_cli(args_str, verbose=True):
 	# init
@@ -68,8 +69,8 @@ res=az_cli(f'role assignment create --assignee {appId} \
 d = {}
 d['AZURE_TENANT_ID']=tenantId
 d['AZURE_CLIENT_ID']=appId
-d['AZURE_CLIENT_CERTIFICATE_PATH']=secret
+#d['AZURE_CLIENT_CERTIFICATE_PATH']=secret
+d['AZURE_CLIENT_SECRET']=secret
 aes=aesCryptJson(f'{name}.aes', args.password)
-print(d)
 aes.encrypt(d)
 print('Credentials file: %s.aes' % name)

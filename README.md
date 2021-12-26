@@ -11,3 +11,7 @@ python az_register_container.py -r <Resource_group> -a <storage_account> -n <con
 ### Setting up env variables from .aes file
 source ~/azure-env-crypt/env_from_aes_file.sh <credentials_filename.aes>
   Then you will be prompted to provide the password (hiddenly prompt)
+
+# Setup
+pip install -r requirements.txt
+

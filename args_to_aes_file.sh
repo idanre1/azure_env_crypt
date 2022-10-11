@@ -9,5 +9,5 @@ stty -echo
 read password
 stty echo
 
-python $HOME/azure-env-crypt/args_to_aes_file.py -f $name -p $password -d $@
+python $HOME/python_lib/azure_env_crypt/args_to_aes_file.py -f $name -p $password -d $@
 

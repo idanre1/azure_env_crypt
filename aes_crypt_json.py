@@ -23,9 +23,8 @@ class aesCryptJson():
 	def decrypt(self):
 		with open(self.encFilename, "rb") as fIn:
 			fOut = io.BytesIO()
-			encFileSize = os.stat(self.encFilename).st_size
 			# decrypt file stream
-			pyAesCrypt.decryptStream(fIn, fOut, self.password, self.bufferSize, encFileSize)
+			pyAesCrypt.decryptStream(fIn, fOut, self.password, self.bufferSize)
 			return json.loads(fOut.getvalue().decode('utf-8'))
 
 if __name__ == "__main__":

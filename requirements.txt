@@ -1,2 +1,2 @@
-azure-cli
-pyAesCrypt
+azure-cli>=2.91.0
+pyAesCrypt>=6.1.1

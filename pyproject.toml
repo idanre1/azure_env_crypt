@@ -3,11 +3,27 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "azure-env-crypt"
+name = "aes-env-crypt"
 version = "0.1.0"
+description = "Store a JSON dict of secrets in an AES-encrypted file and export it as environment variables"
+readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["azure-cli>=2.91.0", "pyAesCrypt>=6.1.1"]
+license = "GPL-3.0-only"
+license-files = ["LICENSE"]
+authors = [{ name = "Idan Regev" }]
+keywords = ["aes", "encryption", "secrets", "environment", "pyAesCrypt"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Security :: Cryptography",
+]
+dependencies = ["pyAesCrypt>=6.1.1"]
 
-[tool.setuptools]
-packages = ["azure_env_crypt"]
-package-dir = { azure_env_crypt = "." }
+[project.urls]
+Homepage = "https://github.com/idanre1/aes_env_crypt"
+Issues = "https://github.com/idanre1/aes_env_crypt/issues"
+
+[project.scripts]
+args-to-aes-file = "aes_env_crypt.cli:args_to_aes_file"
+env-from-aes-file = "aes_env_crypt.cli:env_from_aes_file"
+json-from-aes-file = "aes_env_crypt.cli:json_from_aes_file"

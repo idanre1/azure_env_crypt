@@ -1,76 +1,83 @@
-# azure-env-crypt
-Enhance AZ CLI to store service principal credentials in AES formats
-1. Using service principal you can provide access to specific path inside a storage container
-2. Using AES you can store the credentials encrypted and only upon run setup them to env variables for access the container
-3. Since the credentails are stored in aes encrypted file, it can be versioned control on github (non-public repos...)
+# aes-env-crypt
 
-# Usage
-### Storage SAS registration
-For the current storage SAS registration script:
+Keep a small JSON dict of secrets (API keys, SAS tokens) in an AES-256 encrypted
+file, and decrypt it only when a script needs it: as a Python dict, as Bash
+`export` lines, or as a plain JSON file. Encryption uses
+[pyAesCrypt](https://pypi.org/project/pyAesCrypt/), its only dependency.
 
 ```bash
-cd /datadrive/creds
-uv run --project "$HOME/azure_scripts" ~/azure_scripts/storage/az_register_container.py -a ACCOUNT -n CONTAINER
+pip install aes-env-crypt        # or: uv add aes-env-crypt
 ```
 
-The script prompts for the AES file password and writes
-`storage--ACCOUNT--CONTAINER.aes` in the current working directory. It does not
-create RBAC roles. `--project` selects the environment without changing that
-directory; do not replace it with `--directory`.
-### Setting up env variables from .aes file
+## Python
+
+```python
+from aes_env_crypt import aesCryptJson
+
+aesCryptJson('service.aes', password).encrypt({'API_TOKEN': '...'})
+secrets = aesCryptJson('service.aes', password).decrypt()   # -> dict
+```
+
+A wrong password or a corrupt file raises `ValueError`.
+
+## Command line
+
+| Command | Does |
+|---|---|
+| `args-to-aes-file -f NAME -p PASSWORD -d VAR=value ...` | writes `NAME.aes` |
+| `env-from-aes-file -f NAME.aes -p PASSWORD` | prints `export VAR="value"` lines (names upper-cased) |
+| `json-from-aes-file -f NAME.aes -p PASSWORD` | writes plain-text `NAME.json` next to the file |
+
+Load secrets into the current Bash shell without echoing the password:
 
 ```bash
-cd /datadrive/creds
-source ~/azure_scripts/env_from_aes_file.sh credentials.aes
+read -rsp 'Password: ' pw; echo
+eval "$(env-from-aes-file -f service.aes -p "$pw")"; unset pw
 ```
 
-Then you will be prompted for the password without echoing it.
+## Security notes
 
-# Setup
+- `-p` puts the password on the command line, where other local users can see it
+  in the process list while the command runs. Prefer the Python API on shared hosts.
+- Keep `.aes` files out of git. An encrypted file in a repository can be attacked
+  offline forever, so its safety then rests only on the password strength.
+- `json-from-aes-file` writes the secrets unencrypted; delete the `.json` after use.
 
-For the Azure scripts workspace, keep this checkout at
-`~/python_lib/azure_env_crypt` and use its Python 3.13 uv environment:
+## Development
 
 ```bash
-uv sync --locked --project "$HOME/azure_scripts"
+uv run --isolated --no-project --with-editable . python -m unittest discover -s tests -v
+uv build && uvx twine check dist/*
 ```
 
-The workspace installs this package editably in `~/azure_scripts/.venv`, while
-credential files stay in the directory from which you run the scripts.
-Standalone installation into an
-existing compatible Python environment is also supported:
+`CI` (`.github/workflows/ci.yml`) runs the tests on Python 3.10 to 3.14 for every
+push to `main` and every pull request.
+
+### Releasing
+
+`Publish to PyPI` (`.github/workflows/publish.yml`) runs when a `v*` tag is pushed.
+It checks that the tag matches the `pyproject.toml` version, runs the tests, builds,
+and uploads to PyPI with
+[Trusted Publishing](https://docs.pypi.org/trusted-publishers/), so no PyPI token is
+stored in GitHub.
 
 ```bash
-python -m pip install -e ~/python_lib/azure_env_crypt
+uv version --bump patch        # or set the version in pyproject.toml
+git commit -am "Release vX.Y.Z" && git tag vX.Y.Z && git push origin main vX.Y.Z
 ```
 
-`requirements.txt` remains available for dependency-only installation, but does
-not itself install this local package. Current Azure CLI requires modern Python;
-the Azure scripts workspace uses and tests Python 3.13.
+One-time setup before the first release:
 
-## Azure CLI helpers
+1. On pypi.org, go to Account settings → Publishing → Add a new pending publisher,
+   and enter: PyPI project `aes-env-crypt`, owner `idanre1`, repository
+   `aes_env_crypt`, workflow `publish.yml`, environment `pypi`.
+2. On GitHub, go to repository Settings → Environments → New environment and create
+   `pypi`. Optionally add yourself as a required reviewer, so each upload waits
+   for your approval.
 
-`az_cli(command, verbose=True, debug=False)` invokes the embedded CLI, suppresses
-normal command output, and returns its Python result, including empty results.
-CLI failures raise the original exception; a nonzero exit without an exception
-raises `RuntimeError`. Quoted arguments are parsed with `shlex`, and the existing
-`#`-for-spaces argument convention is retained. Explicit debug output can include
-command arguments; do not enable it for commands containing secrets.
+Formerly `azure_env_crypt`; its Azure CLI helpers moved out, so the package no
+longer depends on Azure.
 
-`az_login()` first requests a management token using the cached CLI session,
-without printing or returning the access token. When the user must sign in,
-it starts device-code login and verifies authentication again afterward. Complete
-the displayed browser instructions and MFA if required. This remains interactive,
-and tenant policy can prohibit device-code login.
+## License
 
-The helper temporarily disables the CLI's new subscription selector for its own
-login, restoring the environment setting afterward and leaving saved CLI config
-unchanged. Microsoft Graph permissions are no longer needed just to check login.
-Permission, network, invalid credential, and configuration failures propagate
-instead of being reported as successful authentication.
-
-Tests for the shared library live in the consuming Azure scripts workspace:
-
-```bash
-uv run --project "$HOME/azure_scripts" python -m unittest discover -s "$HOME/azure_scripts/tests" -v
-```
+GPL-3.0-only. See [LICENSE](https://github.com/idanre1/aes_env_crypt/blob/main/LICENSE).

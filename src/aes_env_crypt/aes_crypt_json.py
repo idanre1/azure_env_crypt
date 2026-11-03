@@ -1,9 +1,19 @@
-# pip install pyAesCrypt
-import pyAesCrypt
-import json
 import io
-import os
+import json
+
+import pyAesCrypt
+
+
 class aesCryptJson():
+	"""JSON dict of string secrets stored in a pyAesCrypt (AES-256) encrypted file.
+
+	Parameters
+	----------
+	encFilename : str
+		Path of the encrypted file. ``encrypt`` overwrites it.
+	password : str
+		AES password. ``decrypt`` raises ``ValueError`` when it is wrong or the file is corrupt.
+	"""
 
 	def __init__(self, encFilename, password):
 		# Encrypted filename
@@ -26,28 +36,3 @@ class aesCryptJson():
 			# decrypt file stream
 			pyAesCrypt.decryptStream(fIn, fOut, self.password, self.bufferSize)
 			return json.loads(fOut.getvalue().decode('utf-8'))
-
-if __name__ == "__main__":
-    # Simple testing
-	filename="testAesCrypt.aes"
-	password="1234"
-	aes=aesCryptJson(filename, password)
-	
-	# test
-	d = {'test_aes_name': 'foo', 'test_aes_family': 'bar'}
-	print('Golden:')
-	print(d)
-
-	# encrypt
-	aes.encrypt(d)
-
-	print('Encrypted file content:')
-	with open(filename, 'rb') as f:
-		encFileSize = os.stat(filename).st_size
-		chrString = f.read(encFileSize)
-		print(chrString)
-
-	# decrypt
-	j = aes.decrypt()
-	print('Decrypted file content:')
-	print(j)
